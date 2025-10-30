@@ -132,7 +132,7 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-REST_FRAMEWORK = [
+REST_FRAMEWORK = {
     # authentication classes for api endpoints 
     #  example jwts tokens for api authentication
     'DEFAULT_AUTHENTICATION_CLASSES' : (
@@ -148,7 +148,59 @@ REST_FRAMEWORK = [
       # example : splits large result set into pages 
      'DEFAULT_PAGINATION_CLASS': 
         'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 5
-    'DEFAULT_FILTER_BACKENDS' : ['django_filters.rest_framework.DjangoFilterBackend']
+    'PAGE_SIZE': 5,
+    'DEFAULT_FILTER_BACKENDS' : ['django_filters.rest_framework.DjangoFilterBackend'], }
+from datetime import timedelta
+SIMPLE_JWT = {
+    # 60 minutes token lifetime
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    # 7 days refresh token lifetime
+    'REFRESH_TOKEN_LIFETIME':timedelta(day=7),
+    # enable token rotation and blacklisting
+    'ROTATE_REFRESH_TOKENS':True,
+    # blacklist after rotation
+    'BLACKLIST_AFTER_ROTATION':True,
+    # update last login time on token refresh
+    'UPDATE_LAST_LOGIN':True,
     
-]
+    #ALGORITHM used to sign the tokens
+    # EXAMPLE : HS256 IS SECURE AND WIDELY USED
+    'ALGORITHM':'HS256',
+    # SIGNING KEY for token generation and verification
+    'SIGNING_KEY': SECRET_KEY,
+    # VERIFYING KEY for asymmetric algorithms
+    'VERIFYING_KEY': None,
+    # HTTP header types to identify the token
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    # HTTP header name where the token is expected
+    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
+    # Field in the token that identifies the user
+    'USER_ID_FIELD': 'id',
+    # Claim in the token that contains the user ID
+    'USER_ID_CLAIM': 'user_id',
+     # Function to retrieve the user based on the token's user ID
+    'USER_AUTHENTICATION_RULE': 'rest_framework_simplejwt.authentication.default_user_authentication_rule',
+    # Classes of tokens to be used
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    # Claim in the token that specifies its type
+    'TOKEN_TYPE_CLAIM': 'token_type',
+    
+}
+# CORS FOR ALL DOMAINS
+CORS_ALLOW_ALL_ORIGINS = True
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+
+# Custom user model with email validation and additional fields 
+
+# example  : uses authentication app's CustomUser model instead of default User model
+AUTH_USER_MODEL = 'authentication.CustomUser'
+
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+DEFAULT_FROM_EMAIL = 'news_api <news_api@example.com>'
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
+
+API_BASE_URL = 'http://127.0.0.1:8000'
