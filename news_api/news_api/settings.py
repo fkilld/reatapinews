@@ -44,14 +44,16 @@ INSTALLED_APPS = [
     # third party app
     'rest_framework',
     'rest_framework_simplejwt',
-    'corsheaders',
-    'django_filter'
+    'django_filters',
+    # 'corsheaders',
+    "corsheaders",
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware' # corsheaders
+    'corsheaders.middleware.CorsMiddleware', # corsheaders
+
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -155,7 +157,7 @@ SIMPLE_JWT = {
     # 60 minutes token lifetime
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     # 7 days refresh token lifetime
-    'REFRESH_TOKEN_LIFETIME':timedelta(day=7),
+    'REFRESH_TOKEN_LIFETIME':timedelta(days=7),
     # enable token rotation and blacklisting
     'ROTATE_REFRESH_TOKENS':True,
     # blacklist after rotation
