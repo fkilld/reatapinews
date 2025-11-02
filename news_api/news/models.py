@@ -76,3 +76,26 @@ class News(models.Model):
         # news/break-ai-news/
         # news/idk-what-this-is/
         return reverse('news:news_detail', kwargs={'slug': self.slug}) 
+    
+    
+class Comment(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, )
+    news = models.ForeignKey(News, on_delete=models.CASCADE, related_name='comments')
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    class Meta:
+        ordering = ['-created_at']
+    def __str__(self):
+        return f"Comment by {self.user.email} on {self.news.title}"
+        
+class Bookmark(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    news = models.ForeignKey(News, on_delete=models.CASCADE, related_name='bookmarks')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ('user', 'news')
+        ordering = ['-created_at']
+    def __str__(self):
+        return f"{self.user.email} bookmarked {self.news.title}"
