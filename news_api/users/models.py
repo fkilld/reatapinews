@@ -17,12 +17,19 @@ class UserProfile(models.Model):
         return self.user.email
 
 class ReadingHistory(models.Model):
+    # link to the user who viewed the news item
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='reading_history')
+    # link to the news item that was viewed (string app.model to avoid import cycle)
     news = models.ForeignKey('news.News', on_delete=models.CASCADE)
+    # timestamp when this record was first created (when the view was recorded)
     viewed_at = models.DateTimeField(auto_now_add=True)
+
     class Meta:
+        # ensure one record per (user, news) pair (prevents duplicate rows)
         unique_together = ('user', 'news')
+        # default ordering when querying: newest views first
         ordering = ['-viewed_at']
-        
+
     def __str__(self):
+        # human-readable representation: "<email> viewed <title> at <timestamp>"
         return f"{self.user.email} viewed {self.news.title} at {self.viewed_at}"
