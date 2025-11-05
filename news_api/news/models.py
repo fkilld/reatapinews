@@ -77,7 +77,16 @@ class News(models.Model):
         # news/idk-what-this-is/
         return reverse('news:news_detail', kwargs={'slug': self.slug}) 
     
-    
+class Like(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, )
+    news = models.ForeignKey(News, on_delete=models.CASCADE, related_name='likes')
+    created_at = models.DateTimeField(auto_now_add=True)
+    class Meta:
+        unique_together = ('user', 'news')
+    def __str__(self):
+         return f"{self.user.email} bookmarked {self.news.title}"
+        
+
 class Comment(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, )
     news = models.ForeignKey(News, on_delete=models.CASCADE, related_name='comments')
