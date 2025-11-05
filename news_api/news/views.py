@@ -1,3 +1,3 @@
-from django.shortcuts import render
+# email varif 
 
-# Create your views here.
+# layout and dynamic and huge response 1000 that you use html template for that reponse  
