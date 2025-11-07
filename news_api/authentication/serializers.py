@@ -22,11 +22,12 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 class UserLoginSerializer(serializers.ModelSerializer):
     email = serializers.EmailField()
     password = serializers.CharField()
+    
     def validate(self, attrs):
         email =  attrs.get('email')
-        password =  attrs.get('empasswordail')
+        password =  attrs.get('password')
         if email and password:
-            user  = authenticate(request=self.context.get('request'))
+            user  = authenticate(request=self.context.get('request'),username=email,password=password)
             if not user :
                 raise serializers.ValidationError('unable to log in with proviede credentials')
             if not user.is_active :
