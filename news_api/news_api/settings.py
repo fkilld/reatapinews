@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     # third party app
     'rest_framework',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     'django_filters',
     # 'corsheaders',
     "corsheaders",
@@ -206,3 +207,8 @@ DEFAULT_FROM_EMAIL = 'news_api <news_api@example.com>'
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
 API_BASE_URL = 'http://127.0.0.1:8000'
+
+
+
+
+# store in cookie for that use need to use auth header

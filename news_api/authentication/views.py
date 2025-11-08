@@ -155,9 +155,9 @@ class UserLogoutView(APIView):
             return Response({
                 'message':'logout successful'
             },status=status.HTTP_200_OK)
-        except print(0):
+        except:
             return Response({
-                'message':'invalid token'
+                'message':'invalid token',
             },status=status.HTTP_400_BAD_REQUEST)
 
 class UserProfileView(generics.RetrieveUpdateAPIView):
