@@ -125,25 +125,25 @@ class UserRegistrationView(generics.CreateAPIView):
             response_data['message'] += '. Failed to send verification email '
         return Response(response_data,status=status.HTTP_201_CREATED)
             
-# class UserLoginView(TokenObtainPairView):
-#     serializer_class = UserLoginSerializer
-#     permission_classes = [permissions.AllowAny]
-#     def post(self, request, *args, **kwargs):
-#         serializer = self.get_serializer(data=request.data)
-#         serializer.is_valid(raise_exception=True)
-#         user = serializer.validated_data['user']
-#         login(request,user)
-#         ##############
-#         refresh = RefreshToken.for_user(user)
-#         tokens = {
-#             'refresh' : str(refresh),
-#             'access' : str(refresh.access_token),
-#         } 
-#         return Response({
-#             'user':UserSerializer(user).data,
-#             'token':tokens,
-#             'message': 'user logged in successfully'
-#         },status=status.HTTP_200_OK)  
+class UserLoginView(TokenObtainPairView):
+    serializer_class = UserLoginSerializer
+    permission_classes = [permissions.AllowAny]
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        login(request,user)
+        ##############
+        refresh = RefreshToken.for_user(user)
+        tokens = {
+            'refresh' : str(refresh),
+            'access' : str(refresh.access_token),
+        } 
+        return Response({
+            'user':UserSerializer(user).data,
+            'token':tokens,
+            'message': 'user logged in successfully'
+        },status=status.HTTP_200_OK)  
         
 class UserLogoutView(APIView):
     permission_classes =[permissions.IsAuthenticated]
