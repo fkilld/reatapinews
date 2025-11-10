@@ -177,27 +177,64 @@ class ChangePasswordView(APIView):
             return Response({'message':'password change successfully'},status=status.HTTP_200_OK)
         return Response(serializer.errors,status=status.HTTP_200_OK)
     
-    
+class EmailVerificationView(APIView):
+    permission_classes =[permissions.AllowAny]
+    def post(self,request):
+        serializer = EmailVerificationSerializer(data=request.data)
+        if serializer.is_valid():
+            token_value = serializer.validated_data['token']
+            verification_token = EmailVerificationToken.objects.get(token=token_value,is_used=False)
+            user = verification_token.user
+            user.is_email_verified =True
+            user.save()
+            verification_token.is_used =True
+            verification_token.save()
+            return Response({'message':'email verified successfully'},status=status.HTTP_200_OK)
+        return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+
+class ResendVerificationEmailView(APIView):
+    permission_classes = [permissions.AllowAny] # for endpoint access without authentication
+    def post(self,request): # for endpoint method post
+        serializers = ResendVerificationSerializer(data=request.data)
+        if serializers.is_valid():
+            email = serializers.validated_data['email']
+            user = CustomUser.objects.get(email=email)
+            # print(user,'azad')
+            email_sent = send_verification_email(user)
+            print(email_sent)
+            if email_sent:
+                return Response({'message':'verification email resent successfully'},status=status.HTTP_200_OK)
+            else:
+                return Response({'message':'failed to send verification email'},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 def send_verification_email(user):
     # uuid token = '<uuid>'
     verification_token = EmailVerificationToken.objects.create(user=user)
     verification_url = f"{settings.API_BASE_URL}/api/auth/verify-email/"
-    subject = 'Verify your email address'
-    
-
-    try:
-       html_message = render_to_string('email_verification.html', {
+    subject = 'Verify your email azad'
+    html_message = render_to_string(f'email_verification.html', {
+        'subject': subject,
         'user': user,
+        
         'verification_url': verification_url,
         'token': verification_token.token,
-        'site_name':'new api'
-    }) 
-       plain_message = strip_tags(html_message)
-       return True
+    })
+    
+    plain_message = strip_tags(html_message)
+
+    try:
+        send_mail(
+            subject=subject,
+            message=plain_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            html_message=html_message
+        )
+        return True
     except Exception as e:
         print(f"Error sending verification email: {e}")
         return False
+
 
     
     

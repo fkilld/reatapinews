@@ -1,0 +1,25 @@
+
+
+    {% comment %} html_message = render_to_string(f'email_verification.html', {
+        'subject': subject,
+        'user': user,
+        
+        'verification_url': verification_url,
+        'token': verification_token.token,
+    }) {% endcomment %}
+
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Email Verification</title>
+    </head>
+    <body>
+        <h2>{{ subject }}</h2>
+        <p>Please verify your email address by clicking the link below:</p>
+        <a href="{{ verification_url }}">Verify Email</a>
+        {{token}}
+        <p>If you did not sign up for this account, please ignore this email.</p>
+    </body>
+    </html>

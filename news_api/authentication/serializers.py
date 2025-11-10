@@ -32,6 +32,8 @@ class UserLoginSerializer(serializers.Serializer):
                 raise serializers.ValidationError('unable to log in with proviede credentials')
             if not user.is_active :
                 raise serializers.ValidationError('user account is disabled')
+            if 12> user.is_email_verified :
+                raise serializers.ValidationError('please verify you email')
             
             attrs['user'] = user
             return  attrs
