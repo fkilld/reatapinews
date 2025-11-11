@@ -186,3 +186,85 @@ class ProfilePictureUploadView(APIView):
         profile = get_object_or_404(UserProfile, user=request.user)
         profile.profile_picture.delete(save=True)
         return Response({"message": "Profile picture removed successfully"}, status=status.HTTP_200_OK)
+    
+    
+class ReadingHistoryView(generics.ListAPIView):
+    """
+    API View for listing user's reading history.
+    
+    This view provides a listing of articles that the current user
+    has read, ordered by most recent views first. It enables
+    reading history tracking and personalization features.
+    
+    Features:
+    - User-specific reading history filtering
+    - Chronological ordering (newest first)
+    - Optimized queries with select_related
+    - Authentication required
+    - Pagination support
+    
+    Endpoint: GET /api/users/reading-history/
+    Permission: IsAuthenticated (JWT access token required)
+    
+    Example Response:
+    {
+        "results": [
+            {
+                "id": 1,
+                "news": 5,
+                "news_title": "Latest AI Breakthrough",
+                "news_slug": "latest-ai-breakthrough",
+                "viewed_at": "2024-01-15T10:30:00Z"
+            },
+            {
+                "id": 2,
+                "news": 3,
+                "news_title": "Technology Trends 2024",
+                "news_slug": "technology-trends-2024",
+                "viewed_at": "2024-01-14T15:45:00Z"
+            }
+        ],
+        "count": 25,
+        "next": "http://api/users/reading-history/?page=2",
+        "previous": null
+    }
+    """
+    
+    
+    serializer_class = ReadingHistorySerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        return ReadingHistory.objects.filter(user=self.request.user).select_related('news')
+    
+    
+class ClearReadingHistoryView(APIView):
+    """
+    API View for clearing all reading history entries.
+    
+    This view allows users to clear their entire reading history,
+    providing privacy control and data management functionality.
+    
+    Features:
+    - Bulk deletion of all reading history entries
+    - User-specific data clearing
+    - Privacy control functionality
+    - Authentication required
+    - Confirmation response
+    
+    Endpoint: DELETE /api/users/reading-history/clear/
+    Permission: IsAuthenticated (JWT access token required)
+    
+    Example Response:
+    {
+        "message": "Reading history cleared successfully"
+    }
+    """
+       
+    
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def delete(self, request):
+        ReadingHistory.objects.filter(user=self.request.user).delete()
+        return Response({"message": "Reading history cleared successfully"}, status=status.HTTP_200_OK)
+    
