@@ -60,6 +60,7 @@ class NewsListSerializer(serializers.ModelSerializer):
     is_bookmarked = serializers.SerializerMethodField()
     comment_count = serializers.SerializerMethodField()
     class Meta:
+        model = News
         fields = ['id', 'title', 'slug', 'content', 'author', 'author_name', 'category', 'category_name',
                  'tags', 'featured_image', 'status', 'published_date', 'view_count', 'like_count',
                  'is_liked', 'is_bookmarked', 'comment_count', 'created_at', 'updated_at']

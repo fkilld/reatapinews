@@ -53,6 +53,7 @@ class News(models.Model):
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='news_articles')
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name='news_articles')
     tags = models.ManyToManyField(Tag, related_name='news_articles', blank=True,null=True)
+    featured_image = models.ImageField(upload_to='news_images/', null=True, blank=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='draft')
     published_date = models.DateTimeField(null=True, blank=True)
     view_count = models.PositiveIntegerField(default=0)
