@@ -41,7 +41,7 @@ from django.db.models import Q
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import *
 from .serializers import *
-
+from users.models import *
 
 
 class NewsCreateView(generics.CreateAPIView):
@@ -154,5 +154,149 @@ class NewsListView(generics.ListAPIView):
         return News.objects.filter(status='published').select_related('author','category').prefetch_related('tags')
     
     
-from rest_framework import viewsets
- 
+
+class NewsDetailView(generics.RetrieveAPIView):
+    """
+    API View for retrieving detailed news article information.
+    
+    This view provides detailed article information including comments
+    and automatically tracks view counts and reading history.
+    
+    Features:
+    - Complete article details with comments
+    - Automatic view count increment
+    - Reading history tracking for authenticated users
+    - Optimized queries for related data
+    - SEO-friendly slug-based URLs
+    
+    Endpoint: GET /api/news/{slug}/
+    Permission: AllowAny (no authentication required)
+    
+    Example Response:
+    {
+        "id": 1,
+        "title": "Latest AI Breakthrough",
+        "slug": "latest-ai-breakthrough",
+        "content": "Full article content...",
+        "author": 1,
+        "author_name": "john_doe",
+        "category": 1,
+        "category_name": "Technology",
+        "tags": [...],
+        "view_count": 151,
+        "like_count": 25,
+        "is_liked": false,
+        "is_bookmarked": true,
+        "comment_count": 8,
+        "comments": [
+            {
+                "id": 1,
+                "user": 2,
+                "user_name": "jane_smith",
+                "content": "Great article!",
+                "created_at": "2024-01-15T15:30:00Z"
+            }
+        ],
+        "published_date": "2024-01-15T14:30:00Z"
+    }
+    """
+    serializer_class = NewsDetailSerializer
+    permission_classes = [permissions.AllowAny]
+    lookup_field = 'slug'
+    def get_queryset(self):
+        return News.objects.select_related('author','category').prefetch_related('tags','comments__user')
+    
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.view_count +=1
+        instance.save(update_fields=['view_count'])
+        if request.user.is_authenticated:
+            ReadingHistory.objects.get_or_create(user=request.user, news=instance)
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+        
+        
+class MyNewsListView(generics.ListAPIView):
+    """
+    API View for listing current user's news articles.
+    
+    This view provides a listing of all articles created by the
+    authenticated user, including both published and draft articles.
+    
+    Features:
+    - User-specific article filtering
+    - Search functionality across title and content
+    - Multiple ordering options
+    - Optimized queries for performance
+    - Authentication required
+    
+    Endpoint: GET /api/news/my/all/
+    Permission: IsAuthenticated (JWT access token required)
+    
+    Query Parameters:
+    - ?search=technology - Search in title and content
+    - ?ordering=-created_at - Order by creation date (newest first)
+    - ?page=1 - Pagination
+    
+    Example Response:
+    {
+        "results": [
+            {
+                "id": 1,
+                "title": "My Article",
+                "status": "published",
+                "view_count": 50,
+                "like_count": 10,
+                "created_at": "2024-01-15T10:30:00Z"
+            }
+        ],
+        "count": 5
+    }
+    """
+    serializer_class = NewsDetailSerializer
+    permission_classes = [permissions.AllowAny]
+    filter_backends= [filters.SearchFilter,filters.OrderingFilter]
+    search_fields = ['title','content']
+    ordering_fields = ['created_at','updated_at','published_date']
+    ordering = ['-created_at']
+    def get_queryset(self):
+        return News.objects.filter(author=self.request.user).select_related('category').prefetch_related('tags')
+    
+class MyDraftNewsListView(generics.ListAPIView):
+    """
+    API View for listing current user's draft articles.
+    
+    This view provides a listing of only draft articles created by the
+    authenticated user, useful for content management workflows.
+    
+    Features:
+    - User-specific draft article filtering
+    - Only unpublished articles
+    - Optimized queries for performance
+    - Authentication required
+    
+    Endpoint: GET /api/news/my/drafts/
+    Permission: IsAuthenticated (JWT access token required)
+    
+    Example Response:
+    {
+        "results": [
+            {
+                "id": 2,
+                "title": "Draft Article",
+                "status": "draft",
+                "view_count": 0,
+                "like_count": 0,
+                "created_at": "2024-01-15T11:30:00Z"
+            }
+        ],
+        "count": 3
+    }
+    """
+    serializer_class = NewsListSerializer
+    permission_classes = [permissions.AllowAny]
+    def get_queryset(self):
+        return News.objects.filter(author=self.request.user,status='draft').select_related('category').prefetch_related('tags')
+    
+class NewsUpdateView(generics.UpdateAPIView):
+    pass
