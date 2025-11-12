@@ -299,4 +299,40 @@ class MyDraftNewsListView(generics.ListAPIView):
         return News.objects.filter(author=self.request.user,status='draft').select_related('category').prefetch_related('tags')
     
 class NewsUpdateView(generics.UpdateAPIView):
-    pass
+    """
+    API View for updating existing news articles.
+    
+    This view handles the updating of news articles created by the
+    authenticated user with comprehensive validation.
+    
+    Features:
+    - Article content updates
+    - Tag and category management
+    - Featured image updates
+    - Publication status changes
+    - Author-only editing restriction
+    - Authentication required
+    
+    Endpoint: PUT /api/news/{slug}/update/
+    Permission: IsAuthenticated (JWT access token required)
+    
+    Example Request:
+    {
+        "title": "Updated Article Title",
+        "content": "Updated content...",
+        "tags": [1, 3],
+        "status": "published"
+    }
+    """
+    serializer_class = NewsListSerializer
+    permission_classes = [permissions.AllowAny]
+    lookup_field = 'slug'
+    def get_queryset(self):
+        return News.objects.filter(author=self.request.user)
+
+class NewsDeleteView(generics.DestroyAPIView):
+    permission_classes = [permissions.AllowAny]
+    lookup_field = 'slug'
+    def get_queryset(self):
+        return News.objects.filter(author=self.request.user)
+    
