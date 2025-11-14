@@ -336,3 +336,208 @@ class NewsDeleteView(generics.DestroyAPIView):
     def get_queryset(self):
         return News.objects.filter(author=self.request.user)
     
+    
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def public_news(request,slug):
+    """
+    Function-based view for publishing news articles.
+    
+    This view changes an article's status from draft to published
+    and sets the published date if not already set.
+    
+    Features:
+    - Status change from draft to published
+    - Automatic published date setting
+    - Author-only publishing restriction
+    - Authentication required
+    
+    Endpoint: POST /api/news/{slug}/publish/
+    Permission: IsAuthenticated (JWT access token required)
+    
+    Example Response:
+    {
+        "message": "News published successfully"
+    }
+    """   
+    news = get_object_or_404(News,slug=slug,author=request.user)    
+    news.status = 'published'
+    if not news.published_date:
+        from django.utils import timezone
+        news.published_date = timezone.now()
+    news.save()
+    return Response({'message':'news published successfully'},status=status.HTTP_200_OK)
+
+
+class CategoryListView(generics.ListAPIView):
+    queryset = Category.objects.filter(is_active=True)
+    serializer_class = CategorySerializer
+    permission_classes = [permissions.AllowAny]
+    
+class CategoryCreateView(generics.CreateAPIView):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    permission_classes = [permissions.IsAdminUser]
+class CategoryNewView(generics.ListAPIView):
+    
+    serializer_class = NewsListSerializer
+    permission_classes = [permissions.AllowAny]
+    def get_queryset(self):
+        category_id = self.kwargs['category_id']
+        
+        return News.objects.filter(
+            category_id=category_id,status='published'
+        ).select_related('author','category').prefetch_related('tags')
+    
+class TagListView(generics.ListAPIView):
+    
+    serializer_class = TagSerializer
+    permission_classes = [permissions.AllowAny]
+    queryset = Tag.objects.all()
+   
+class PopularTagsView(generics.ListAPIView):
+    
+    serializer_class = TagSerializer
+    permission_classes = [permissions.AllowAny]
+    def get_queryset(self):
+        return Tag.objects.filter(usage_count__gt=0).order_by('-usage_count')[:20]
+    
+
+class TagNewsView(generics.ListAPIView):
+    serializer_class = NewsListSerializer
+    permission_classes = [permissions.AllowAny]
+    def get_queryset(self):
+        tag_id = self.kwargs['tag_id']
+        return News.objects.filter(
+            tags__id=tag_id,status='published'
+            
+        ).select_related('author','category').prefetch_related('tags')
+        
+
+class NewsSearchView(APIView):
+
+    permission_classes = [permissions.AllowAny]
+    def get(self,request):
+        query = request.GET.get('q','')
+        category = request.GET.get('category','')
+        author = request.GET.get('author','')
+        date_form = request.GET.get('date_form','')
+        date_to = request.GET.get('date_to','')
+        news_qs = News.objects.filter(status='published')
+        
+        if query:
+            news_qs = news_qs.filter(
+                Q(title__icontains=query) | Q(content__icontains=query) |
+                Q(author__username__icontains=query) | Q(category__name__icontains=query)|
+                Q(tags__name__icontains=query)
+            )
+        if category:
+            news_qs = news_qs.filter(category__id=category)
+        if author:
+            news_qs = news_qs.filter(author__id=author)
+        if date_form:
+            news_qs = news_qs.filter(published_date__gte=date_form)
+        if date_to:
+            news_qs = news_qs.filter(published_date__lte=date_to)
+        from rest_framework.pagination import PageNumberPagination
+        paginator = PageNumberPagination()
+        paginator.page_size = 20
+        result_page = paginator.paginate_queryset(news_qs,request)
+        serializer = NewsListSerializer(result_page,many=True,context={'request':request})
+        return paginator.get_paginated_response(serializer.data)
+    
+    
+class LikeToggleView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def post(self,request,news_id):
+        news = get_object_or_404(News,id=news_id)
+        like_obj,created = Like.objects.get_or_create(user=request.user,news=news)
+        if not created:
+            like_obj.delete()
+            news.like_count = News.objects.filter(likes__news=news).count()
+            news.save(update_fields=['like_count'])
+            return Response({'message':'news unliked','liked':False},status=status.HTTP_200_OK)
+        else:
+            news.like_count = News.objects.filter(likes__news=news).count()
+            news.save(update_fields=['like_count'])
+            return Response({'message':'news liked','liked':True},status=status.HTTP_200_OK)
+
+
+class NewsLikesView(generics.ListAPIView):
+    serializer_class = LikeSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        news_id = self.kwargs['news_id']
+        return Like.objects.filter(news__id=news_id).select_related('user')
+    
+class MyLikesView(generics.ListAPIView):
+    serializer_class = LikeSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    def get_queryset(self):
+        return Like.objects.filter(user=self.request.user).select_related('news')
+    
+class CommentCreateView(generics.CreateAPIView):
+    serializer_class = CommentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    def perform_create(self, serializer):
+        news_id = self.kwargs['news_id']
+        news = get_object_or_404(News,id=news_id)
+        serializer.save(user=self.request.user,news=news)
+        
+class CommentListView(generics.ListAPIView):
+    serializer_class = CommentSerializer
+    permission_classes = [permissions.AllowAny]
+    def get_queryset(self):
+        news_id = self.kwargs['news_id']
+        return Comment.objects.filter(news__id=news_id).select_related('user')
+    
+    
+class CommentUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = CommentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    def get_queryset(self):
+        return Comment.objects.filter(user=self.request.user)
+    
+class BookmarkToggleView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def post(self, request, news_id):
+        news = get_object_or_404(News, id=news_id)
+        bookmark, created = Bookmark.objects.get_or_create(user=request.user, news=news)
+        if not created:
+            bookmark.delete()
+            return Response({'message': 'Bookmark removed', 'bookmarked': False}, status=status.HTTP_200_OK)
+        else:
+            return Response({'message': 'Bookmark added', 'bookmarked': True}, status=status.HTTP_201_CREATED)
+
+
+class MyBookmarksView(generics.ListAPIView):
+    serializer_class = BookmarkSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    def get_queryset(self):
+        return Bookmark.objects.filter(user=self.request.user).select_related('news')
+    
+    
+class RemoveBookmarkView(generics.DestroyAPIView):
+    
+    permission_classes = [permissions.IsAuthenticated]
+    def get_queryset(self):
+        return Bookmark.objects.filter(user=self.request.user)
+    
+    
+class RecommendationsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def get(self,request):
+        user = request.user
+        read_news_ids = ReadingHistory.objects.filter(user=user).values_list('news_id', flat=True)  
+        read_categories = News.objects.filter(id__in=read_news_ids).values_list('category_id', flat=True).distinct()
+        read_tags = News.objects.filter(id__in=read_news_ids).values_list('tags__id', flat=True).distinct()
+        recommended_news = News.objects.filter(
+            Q(category_id__in=read_categories) | Q(tags__id__in=read_tags),
+            status='published'
+        ).exclude(id__in=read_news_ids).distinct().select_related('author','category').prefetch_related('tags')[:10]
+        
+        if not recommended_news.exists():
+            recommended_news  = News.objects.filter(status='published').exclude(id__in=read_news_ids).select_related('author','category').prefetch_related('tags')[:10]
+        serializer = NewsListSerializer(recommended_news, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
